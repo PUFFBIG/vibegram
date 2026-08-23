@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vibegram</title>
+<style>
+  :root {
+    --bg-primary: #0e1621;
+    --bg-secondary: #17212b;
+    --bg-input: #242f3d;
+    --accent: #7c3aed;
+    --text-primary: #ffffff;
+    --text-secondary: #8a99a8;
+    --border: #1e2933;
+    --out-bubble: #7c3aed;
+    --in-bubble: #242f3d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+  }
+  .screen { display: none; flex-direction: column; height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* --- AUTH --- */
+  #auth-screen { justify-content: center; padding: 24px; }
+  .logo { font-size: 32px; font-weight: 800; color: var(--accent); text-align: center; margin-bottom: 30px; }
+  .auth-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; text-align: center; }
+  .input-group { margin-bottom: 14px; }
+  .input-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  input[type="text"], input[type="password"] {
+    width: 100%; padding: 14px; border-radius: 10px; border: none;
+    background: var(--bg-input); color: var(--text-primary); font-size: 16px;
+  }
+  input::placeholder { color: var(--text-secondary); }
+  .btn-primary {
+    width: 100%; padding: 14px; border-radius: 10px; border: none;
+    background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 6px;
+  }
+  .btn-primary:active { opacity: 0.8; }
+  .switch-auth { text-align: center; margin-top: 16px; color: var(--accent); font-size: 14px; cursor: pointer; }
+  .alert { background: #ff4757; color: #fff; padding: 14px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; display: none; }
+
+  /* --- HEADER --- */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  }
+  .header-title { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 14px; }
+  .header-profile { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .logout-link { color: var(--text-secondary); font-size: 14px; cursor: pointer; }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--accent);
+    display: none; align-items: center; justify-content: center; cursor: pointer; font-size: 16px;
+  }
+
+  /* --- AVATAR --- */
+  .avatar {
+    width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; flex-shrink: 0; position: relative;
+    background: var(--accent);
+  }
+  .online-dot {
+    position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; border-radius: 50%;
+    background: #4ade80; border: 2px solid var(--bg-secondary);
+  }
+
+  /* --- TABS --- */
+  .tabs { display: flex; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+  .tab {
+    flex: 1; text-align: center; padding: 12px; font-size: 14px; font-weight: 600;
+    color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* --- SEARCH BAR --- */
+  .search-bar { display: flex; gap: 8px; padding: 10px 12px; background: var(--bg-secondary); }
+  .search-bar input { flex: 1; padding: 10px 12px; border-radius: 8px; border: none; background: var(--bg-input); color: #fff; font-size: 14px; }
+  .search-bar button { padding: 10px 14px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+  /* --- LIST --- */
+  .list-wrap { flex: 1; overflow-y: auto; }
+  .chat-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .chat-item:active { background: var(--bg-secondary); }
+  .chat-info { flex: 1; min-width: 0; }
+  .chat-name { font-size: 15px; font-weight: 600; }
+  .chat-last-msg { font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .chat-time { font-size: 11px; color: var(--text-secondary); flex-shrink: 0; }
+  .empty-state { padding: 40px 20px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+
+  /* --- MESSAGE SCREEN --- */
+  .msg-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+  .back-btn { font-size: 24px; cursor: pointer; color: var(--text-secondary); padding: 4px 8px 4px 0; }
+  .msg-header-info { flex: 1; }
+  .msg-header-name { font-size: 16px; font-weight: 600; }
+  .msg-header-status { font-size: 12px; color: var(--text-secondary); }
+  #msg-avatar { width: 38px; height: 38px; font-size: 18px; }
+
+  .msg-list { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .message { max-width: 75%; padding: 10px 14px; border-radius: 14px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+  .message.out { align-self: flex-end; background: var(--out-bubble); border-bottom-right-radius: 4px; }
+  .message.in { align-self: flex-start; background: var(--in-bubble); border-bottom-left-radius: 4px; }
+  .msg-time { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px; text-align: right; }
+
+  .msg-input-area { display: flex; gap: 8px; padding: 10px 12px; background: var(--bg-secondary); border-top: 1px solid var(--border); }
+  .msg-input-area input { flex: 1; padding: 12px 14px; border-radius: 20px; border: none; background: var(--bg-input); color: #fff; font-size: 15px; }
+  .send-btn { width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--accent); color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+  .channel-badge { padding: 12px; text-align: center; color: var(--text-secondary); font-size: 13px; background: var(--bg-secondary); border-top: 1px solid var(--border); }
+
+  /* --- MODAL --- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none;
+    align-items: center; justify-content: center; z-index: 2000; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--bg-secondary); border-radius: 14px; padding: 22px; width: 100%; max-width: 340px; max-height: 82vh; overflow-y: auto; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 16px; }
+  .emoji-option { text-align: center; font-size: 20px; padding: 6px 0; border-radius: 8px; cursor: pointer; }
+  .emoji-option:active { background: var(--bg-input); }
+  .color-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .color-swatch.selected { border-color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH SCREEN ================= -->
+<div class="screen active" id="auth-screen">
+  <div class="logo">Vibegram</div>
+  <div id="alert-box" class="alert"></div>
+  <div class="auth-title" id="auth-title">Вход в аккаунт</div>
+  <div class="input-group">
+    <label>Никнейм</label>
+    <input type="text" id="auth-nick" placeholder="Ваш никнейм">
+  </div>
+  <div class="input-group">
+    <label>Пароль</label>
+    <input type="password" id="auth-pass" placeholder="Пароль">
+  </div>
+  <button class="btn-primary" id="auth-submit-btn">Войти</button>
+  <div class="switch-auth" id="switch-auth-btn">Нет аккаунта? Зарегистрироваться</div>
+</div>
+
+<!-- ================= CHATS/CHANNELS SCREEN ================= -->
+<div class="screen" id="chats-screen">
+  <div class="header">
+    <div class="header-profile" id="header-profile-trigger">
+      <div class="avatar" id="header-avatar" style="width:32px;height:32px;font-size:16px;">😊</div>
+      <span class="header-title" id="my-nick-header">Vibegram</span>
+    </div>
+    <div class="header-right">
+      <div class="icon-btn" id="create-channel-btn" title="Создать канал">+</div>
+      <div class="logout-link" id="logout-btn">Выйти</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" id="tab-chats">Чаты</div>
+    <div class="tab" id="tab-channels">Каналы</div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Ник для нового чата...">
+    <button id="action-btn">Написать</button>
+  </div>
+  <div class="list-wrap">
+    <div id="chat-list"></div>
+    <div id="channel-list" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ================= MESSAGE SCREEN (chat or channel) ================= -->
+<div class="screen" id="msg-screen">
+  <div class="msg-header">
+    <div class="back-btn" id="back-btn">‹</div>
+    <div class="avatar" id="msg-avatar">🙂</div>
+    <div class="msg-header-info">
+      <div class="msg-header-name" id="msg-chat-name">Имя</div>
+      <div class="msg-header-status" id="msg-chat-status"></div>
+    </div>
+  </div>
+  <div class="msg-list" id="msg-list"></div>
+  <div class="channel-badge" id="channel-readonly-badge" style="display:none;">Публиковать сюда может только владелец канала</div>
+  <div class="msg-input-area" id="msg-input-area">
+    <input type="text" id="msg-input" placeholder="Сообщение...">
+    <button class="send-btn" id="send-btn">➤</button>
+  </div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+  const API_URL = 'https://vibegram-production.up.railway.app';
+  const EMOJIS = ['😊','😎','🐱','🐶','🦊','🐼','🐸','🦄','🌟','🔥','🌈','🍀','🎮','🎧','📚','⚡','🍕','⚽','🎨','🚀'];
+  const COLORS = ['#7c3aed','#2563eb','#059669','#dc2626','#d97706','#db2777','#0891b2','#4b5563'];
+
+  // --- Состояние приложения ---
+  let state = {
+    token: localStorage.getItem('vibegram_token'),
+    nick: localStorage.getItem('vibegram_nick'),
+    isLoginMode: true,
+    myId: null,
+    activeTab: 'chats',
+    currentContext: null, // { type: 'chat'|'channel', id }
+    ws: null,
+    profile: { avatar_emoji: '😊', avatar_color: '#7c3aed', bio: '' }
+  };
+
+  const screens = {
+    auth: document.getElementById('auth-screen'),
+    chats: document.getElementById('chats-screen'),
+    msg: document.getElementById('msg-screen')
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  function showAlert(msg) {
+    const box = document.getElementById('alert-box');
+    box.innerText = msg;
+    box.style.display = 'block';
+    setTimeout(() => { box.style.display = 'none'; }, 4000);
+  }
+
+  function getErrorMessage(data) {
+    if (!data) return 'Ошибка';
+    if (typeof data.detail === 'string') return data.detail;
+    if (Array.isArray(data.detail) && data.detail[0]?.msg) return data.detail[0].msg;
+    return 'Ошибка';
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.innerText = str;
+    return d.innerHTML;
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts.includes('Z') || ts.includes('+') ? ts : ts + 'Z');
+    return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function avatarHtml(emoji, color, online) {
+    return `<div class="avatar" style="background-color:${color || '#7c3aed'}">${emoji || '🙂'}${online ? '<div class="online-dot"></div>' : ''}</div>`;
+  }
+
+  // Правильное декодирование JWT (base64url, не обычный base64!)
+  function parseJwt(token) {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) { return {}; }
+  }
+
+  // --- MODAL helpers ---
+  function openModal(html) {
+    document.getElementById('modal-content').innerHTML = html;
+    document.getElementById('modal-overlay').classList.add('active');
+  }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+  }
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+
+  // --- AUTH ---
+  document.getElementById('switch-auth-btn').onclick = () => {
+    state.isLoginMode = !state.isLoginMode;
+    document.getElementById('auth-title').innerText = state.isLoginMode ? 'Вход в аккаунт' : 'Регистрация';
+    document.getElementById('auth-submit-btn').innerText = state.isLoginMode ? 'Войти' : 'Зарегистрироваться';
+    document.getElementById('switch-auth-btn').innerText = state.isLoginMode ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти';
+  };
+
+  document.getElementById('auth-submit-btn').onclick = async () => {
+    const nick = document.getElementById('auth-nick').value.trim();
+    const pass = document.getElementById('auth-pass').value;
+    if (!nick || !pass) return showAlert('Заполните все поля');
+
+    const url = state.isLoginMode ? '/api/login' : '/api/register';
+    try {
+      const res = await fetch(API_URL + url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nick, password: pass })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getErrorMessage(data));
+
+      if (state.isLoginMode) {
+        state.token = data.access_token;
+        state.nick = data.nick;
+        localStorage.setItem('vibegram_token', state.token);
+        localStorage.setItem('vibegram_nick', state.nick);
+        initApp();
+      } else {
+        showAlert('Аккаунт создан! Теперь войдите.');
+        document.getElementById('switch-auth-btn').click();
+      }
+    } catch (e) {
+      showAlert(e.message);
+    }
+  };
+
+  document.getElementById('logout-btn').onclick = () => {
+    localStorage.removeItem('vibegram_token');
+    localStorage.removeItem('vibegram_nick');
+    if (state.ws) state.ws.close();
+    location.reload();
+  };
+
+  // --- PROFILE ---
+  function updateHeaderAvatar() {
+    const el = document.getElementById('header-avatar');
+    el.innerText = state.profile.avatar_emoji;
+    el.style.backgroundColor = state.profile.avatar_color;
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await fetch(`${API_URL}/api/me`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getErrorMessage(data));
+      state.profile = data;
+      updateHeaderAvatar();
+    } catch (e) { /* тихо игнорируем */ }
+  }
+
+  function showProfileModal() {
+    openModal(`
+      <div class="modal-title">Профиль @${state.nick}</div>
+      <div style="display:flex;justify-content:center;margin-bottom:16px;">
+        <div id="profile-avatar-preview" class="avatar" style="width:74px;height:74px;font-size:34px;background-color:${state.profile.avatar_color}">${state.profile.avatar_emoji}</div>
+      </div>
+      <div class="emoji-grid">
+        ${EMOJIS.map(e => `<div class="emoji-option" onclick="pickEmoji('${e}')">${e}</div>`).join('')}
+      </div>
+      <div class="color-row">
+        ${COLORS.map(c => `<div class="color-swatch ${c === state.profile.avatar_color ? 'selected' : ''}" style="background-color:${c}" onclick="pickColor('${c}')"></div>`).join('')}
+      </div>
+      <div class="input-group">
+        <label>О себе</label>
+        <input type="text" id="profile-bio" value="${escapeHtml(state.profile.bio || '')}" placeholder="Пара слов о себе" maxlength="200">
+      </div>
+      <button class="btn-primary" onclick="saveProfile()">Сохранить</button>
+      <div class="switch-auth" onclick="closeModal()">Отмена</div>
+    `);
+  }
+
+  function pickEmoji(e) {
+    state.profile.avatar_emoji = e;
+    document.getElementById('profile-avatar-preview').innerText = e;
+  }
+  function pickColor(c) {
+    state.profile.avatar_color = c;
+    document.getElementById('profile-avatar-preview').style.backgroundColor = c;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    event.target.classList.add('selected');
+  }
+
+  async function saveProfile() {
+    const bio = document.getElementById('profile-bio').value.trim();
+    try {
+      const res = await fetch(`${API_URL}/api/profile`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+        body: JSON.stringify({ avatar_emoji: state.profile.avatar_emoji, avatar_color: state.profile.avatar_color, bio })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getErrorMessage(data));
+      state.profile.bio = bio;
+      closeModal();
+      updateHeaderAvatar();
+      showAlert('Профиль обновлён');
+    } catch (e) { showAlert(e.message); }
+  }
+
+  document.getElementById('header-profile-trigger').onclick = showProfileModal;
+
+  // --- TABS ---
+  function switchTab(tab) {
+    state.activeTab = tab;
+    document.getElementById('tab-chats').classList.toggle('active', tab === 'chats');
+    document.getElementById('tab-channels').classList.toggle('active', tab === 'channels');
+    document.getElementById('chat-list').style.display = tab === 'chats' ? 'block' : 'none';
+    document.getElementById('channel-list').style.display = tab === 'channels' ? 'block' : 'none';
+    document.getElementById('create-channel-btn').style.display = tab === 'channels' ? 'flex' : 'none';
+
+    const input = document.getElementById('search-input');
+    const btn = document.getElementById('action-btn');
+    input.value = '';
+    if (tab === 'chats') {
+      input.placeholder = 'Ник для нового чата...';
+      btn.innerText = 'Написать';
+      loadChats();
+    } else {
+      input.placeholder = 'Поиск каналов...';
+      btn.innerText = 'Искать';
+      loadChannels();
+    }
+  }
+  document.getElementById('tab-chats').onclick = () => switchTab('chats');
+  document.getElementById('tab-channels').onclick = () => switchTab('channels');
+  document.getElementById('create-channel-btn').onclick = showCreateChannelModal;
+
+  document.getElementById('action-btn').onclick = () => {
+    if (state.activeTab === 'chats') createChat();
+    else searchChannelsAction();
+  };
+
+  // --- CHATS ---
+  async function createChat() {
+    const targetNick = document.getElementById('search-input').value.trim();
+    if (!targetNick) return showAlert('Введите ник для поиска');
+    try {
+      const res = await fetch(`${API_URL}/api/chats/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+        body: JSON.stringify({ target_nick: targetNick })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getErrorMessage(data));
+      document.getElementById('search-input').value = '';
+      loadChats();
+      openChat(data.chat_id, targetNick, false, null, null);
+    } catch (e) { showAlert(e.message); }
+  }
+
+  async function loadChats() {
+    try {
+      const res = await fetch(`${API_URL}/api/chats`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+      const chats = await res.json();
+      renderChats(chats);
+    } catch (e) { showAlert('Ошибка загрузки чатов'); }
+  }
+
+  function renderChats(chats) {
+    const container = document.getElementById('chat-list');
+    container.innerHTML = '';
+    if (chats.length === 0) {
+      container.innerHTML = '<div class="empty-state">Пока нет чатов.<br>Найдите собеседника по нику выше.</div>';
+      return;
+    }
+    chats.forEach(chat => {
+      const div = document.createElement('div');
+      div.className = 'chat-item';
+      div.innerHTML = `
+        ${avatarHtml(chat.avatar_emoji, chat.avatar_color, chat.online)}
+        <div class="chat-info">
+          <div class="chat-name">${escapeHtml(chat.nick)}</div>
+          <div class="chat-last-msg">${chat.last_message ? escapeHtml(chat.last_message) : 'Нет сообщений'}</div>
+        </div>
+        <div class="chat-time">${chat.timestamp ? formatTime(chat.timestamp) : ''}</div>
+      `;
+      div.onclick = () => openChat(chat.chat_id, chat.nick, chat.online, chat.avatar_emoji, chat.avatar_color);
+      container.appendChild(div);
+    });
+  }
+
+  async function openChat(chatId, nick, online, emoji, color) {
+    state.currentContext = { type: 'chat', id: chatId };
+    document.getElementById('msg-chat-name').innerText = nick;
+    document.getElementById('msg-avatar').innerHTML = emoji || '🙂';
+    document.getElementById('msg-avatar').style.backgroundColor = color || '#7c3aed';
+    document.getElementById('msg-chat-status').innerText = online ? 'в сети' : 'был(а) недавно';
+    document.getElementById('msg-list').innerHTML = '';
+    document.getElementById('msg-input-area').style.display = 'flex';
+    document.getElementById('channel-readonly-badge').style.display = 'none';
+    showScreen('msg');
+    try {
+      const res = await fetch(`${API_URL}/api/messages/${chatId}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+      const messages = await res.json();
+      messages.forEach(appendMessage);
+      scrollDown();
+    } catch (e) { showAlert('Ошибка загрузки истории'); }
+  }
+
+  // --- CHANNELS ---
+  function showCreateChannelModal() {
+    openModal(`
+      <div class="modal-title">Новый канал</div>
+      <div class="input-group">
+        <label>Имя канала (@username)</label>
+        <input type="text" id="ch-name" placeholder="mychannel">
+      </div>
+      <div class="input-group">
+        <label>Название</label>
+        <input type="text" id="ch-title" placeholder="Мой канал">
+      </div>
+      <div class="input-group" style="margin-bottom:18px;">
+        <label>Описание (необязательно)</label>
+        <input type="text" id="ch-desc" placeholder="О чём канал">
+      </div>
+      <button class="btn-primary" onclick="submitCreateChannel()">Создать</button>
+      <div class="switch-auth" onclick="closeModal()">Отмена</div>
+    `);
+  }
+
+  async function submitCreateChannel() {
+    const name = document.getElementById('ch-name').value.trim();
+    const title = document.getElementById('ch-title').value.trim();
+    const description = document.getElementById('ch-desc').value.trim();
+    if (!name || !title) return showAlert('Укажите имя и название');
+    try {
+      const res = await fetch(`${API_URL}/api/channels/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+        body: JSON.stringify({ name, title, description })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(getErrorMessage(data));
+      closeModal();
+      loadChannels();
+      showAlert('Канал создан!');
+    } catch (e) { showAlert(e.message); }
+  }
+
+  async function loadChannels() {
+    try {
+      const res = await fetch(`${API_URL}/api/channels/my`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+      const data = await res.json();
+      renderChannelList(data, 'my');
+    } catch (e) { showAlert('Ошибка загрузки каналов'); }
+  }
+
+  async function searchChannelsAction() {
+    const q = document.getElementById('search-input').value.trim();
+    try {
+      const res = await fetch(`${API_URL}/api/channels/search?q=${encodeURIComponent(q)}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+      const data = await res.json();
+      renderChannelList(data, 'search');
+    } catch (e) { showAlert('Ошибка поиска'); }
+  }
+
+  function renderChannelList(channels, mode) {
+    const container = document.getElementById('channel-list');
+    container.innerHTML = '';
+
+    if (mode === 'search') {
+      const back = document.createElement('div');
+      back.className = 'chat-item';
+      back.style.color = 'var(--accent)';
+      back.style.fontWeight = '600';
+      back.innerText = '← Мои каналы';
+      back.onclick = () => loadChannels();
+      container.appendChild(back);
+    }
+
+    if (channels.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerText = mode === 'search' ? 'Ничего не найдено' : 'У вас пока нет каналов.\nСоздайте свой или найдите через поиск.';
+      container.appendChild(empty);
+      return;
+    }
+
+    channels.forEach(ch => {
+      const div = document.createElement('div');
+      div.className = 'chat-item';
+      const isOwner = ch.owner_id === state.myId;
+      div.innerHTML = `
+        ${avatarHtml(ch.avatar_emoji, '#2563eb', false)}
+        <div class="chat-info">
+          <div class="chat-name">${escapeHtml(ch.title)} ${isOwner ? '👑' : ''}</div>
+          <div class="chat-last-msg">${mode === 'search' ? (escapeHtml(ch.description || 'Нет описания')) : (ch.last_message ? escapeHtml(ch.last_message) : 'Нет постов')}</div>
+        </div>
+      `;
+      if (mode === 'search' && !ch.is_member) {
+        const joinBtn = document.createElement('button');
+        joinBtn.innerText = 'Подписаться';
+        joinBtn.style.cssText = 'padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;flex-shrink:0;';
+        joinBtn.onclick = async (e) => {
+          e.stopPropagation();
+          await fetch(`${API_URL}/api/channels/${ch.channel_id}/join`, { method: 'POST', headers: { 'Authorization': `Bearer ${state.token}` } });
+          ch.is_member = true;
+          renderChannelList(channels, mode);
+        };
+        div.appendChild(joinBtn);
+      }
+      div.onclick = () => openChannel(ch.channel_id, ch.title, ch.avatar_emoji, isOwner);
+      container.appendChild(div);
+    });
+  }
+
+  async function openChannel(channelId, title, emoji, isOwner) {
+    try {
+      await fetch(`${API_URL}/api/channels/${channelId}/join`, { method: 'POST', headers: { 'Authorization': `Bearer ${state.token}` } });
+    } catch (e) { /* уже подписан — не страшно */ }
+
+    state.currentContext = { type: 'channel', id: channelId };
+    document.getElementById('msg-chat-name').innerText = title;
+    document.getElementById('msg-avatar').innerHTML = emoji || '📢';
+    document.getElementById('msg-avatar').style.backgroundColor = '#2563eb';
+    document.getElementById('msg-chat-status').innerText = isOwner ? 'ваш канал' : 'канал';
+    document.getElementById('msg-list').innerHTML = '';
+    document.getElementById('msg-input-area').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('channel-readonly-badge').style.display = isOwner ? 'none' : 'block';
+    showScreen('msg');
+    try {
+      const res = await fetch(`${API_URL}/api/channels/${channelId}/messages`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+      const messages = await res.json();
+      messages.forEach(appendMessage);
+      scrollDown();
+    } catch (e) { showAlert('Ошибка загрузки истории'); }
+  }
+
+  // --- MESSAGES (общие для чатов и каналов) ---
+  function appendMessage(msg) {
+    const isMe = msg.sender_id === state.myId;
+    const div = document.createElement('div');
+    div.className = `message ${isMe ? 'out' : 'in'}`;
+    div.innerHTML = `<div>${escapeHtml(msg.text)}</div><div class="msg-time">${formatTime(msg.timestamp)}</div>`;
+    document.getElementById('msg-list').appendChild(div);
+  }
+
+  function scrollDown() {
+    const list = document.getElementById('msg-list');
+    list.scrollTop = list.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text || !state.currentContext) return;
+
+    if (state.currentContext.type === 'chat') {
+      if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return showAlert('Нет соединения');
+      state.ws.send(JSON.stringify({ chat_id: state.currentContext.id, text }));
+      input.value = '';
+    } else {
+      try {
+        const res = await fetch(`${API_URL}/api/channels/${state.currentContext.id}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+          body: JSON.stringify({ text })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(getErrorMessage(data));
+        appendMessage(data);
+        scrollDown();
+        input.value = '';
+      } catch (e) { showAlert(e.message); }
+    }
+  }
+
+  document.getElementById('send-btn').onclick = sendMessage;
+  document.getElementById('msg-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+  document.getElementById('search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') { if (state.activeTab === 'chats') createChat(); else searchChannelsAction(); }
+  });
+
+  document.getElementById('back-btn').onclick = () => {
+    const prevType = state.currentContext ? state.currentContext.type : 'chat';
+    state.currentContext = null;
+    showScreen('chats');
+    switchTab(prevType === 'channel' ? 'channels' : 'chats');
+  };
+
+  // --- WEBSOCKET ---
+  function connectWs() {
+    const wsUrl = API_URL.replace('https', 'wss').replace('http', 'ws') + `/ws?token=${state.token}`;
+    state.ws = new WebSocket(wsUrl);
+    state.ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (!state.currentContext) return;
+      if (data.type === 'new_message' && state.currentContext.type === 'chat' && data.chat_id === state.currentContext.id) {
+        appendMessage(data.message);
+        scrollDown();
+      } else if (data.type === 'new_channel_message' && state.currentContext.type === 'channel' && data.channel_id === state.currentContext.id) {
+        appendMessage(data.message);
+        scrollDown();
+      }
+    };
+    state.ws.onclose = () => { setTimeout(connectWs, 3000); };
+  }
+
+  // --- INIT ---
+  function initApp() {
+    const payload = parseJwt(state.token);
+    state.myId = payload.user_id;
+    document.getElementById('my-nick-header').innerText = `@${state.nick}`;
+    showScreen('chats');
+    loadProfile();
+    switchTab('chats');
+    connectWs();
+  }
+
+  if (state.token) initApp();
+</script>
+</body>
+</html>
